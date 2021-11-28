@@ -20,7 +20,7 @@ This is Firebase function.
 ### Prepare to run
 
 You need to have installed the Firebase CLI. If you haven't run:
-``
+```
 npm install -g firebase-tools
 ```
 
