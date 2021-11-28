@@ -106,3 +106,4 @@ dist
 ######
 # Customize
 *.csv
+.firebaserc
