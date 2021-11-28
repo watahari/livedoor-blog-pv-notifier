@@ -1,4 +1,4 @@
-const chromium = require('chrome-aws-lambda');
+const puppeteer = require('puppeteer');
 const fs = require('fs');
 const axios = require('axios');
 
@@ -35,7 +35,7 @@ const DISCORD_BOT_NAME = 'PV教えるくん';
       console.log(res);
   }
 
-  const browser = await chromium.puppeteer.launch({
+  const browser = await puppeteer.launch({
     headless: true,
     args: [
       '--disable-dev-shm-usage'
