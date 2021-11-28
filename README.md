@@ -34,6 +34,20 @@ cd functions
 npm i
 ```
 
+Create `./functions/.runtimeconfig.json` like here.
+```:.runtimeconfig.json
+{
+  "ldb": {
+    "user": "<your livedoor id>",
+    "blog_id": "<blog owner livedoor id>",
+    "pwd": "<your livedoor password>"
+  },
+  "discord": {
+    "webhook": "<your discord webhook url https://discord.com/api/webhooks/****>"
+  }
+}
+```
+
 ### Run
 
 Emulate Firebase localy,
