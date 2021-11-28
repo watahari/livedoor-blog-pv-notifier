@@ -71,3 +71,7 @@ firebase functions:config:set ldb.blog_id="<blog owner livedoor id>"
 firebase functions:config:set discord.webhook="<your discord webhook url https://discord.com/api/webhooks/****>"
 firebase deploy --only functions
 ```
+
+Post at,
+ - Get scraping endpoint
+ - every 13:00:00
