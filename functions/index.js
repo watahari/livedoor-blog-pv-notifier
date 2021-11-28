@@ -3,6 +3,9 @@ const puppeteer = require("puppeteer");
 const fs = require("fs");
 const axios = require("axios");
 
+const timezone = "Asia/Tokyo";
+process.env.TZ = timezone;
+
 const LOGIN_USER = functions.config().ldb.user;
 const LOGIN_PASS = functions.config().ldb.pwd;
 const BLOG_ID = functions.config().ldb.blog_id;
