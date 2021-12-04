@@ -126,7 +126,7 @@ async function scrapePVAndPostDiscord() {
   // calc date
   const m = await getDate();
   const targetDataDate = `${m[2]}/${m[3]}`;
-  const now = `${m[2]}/${m[3]} ${m[4]}:${m[4]}`;
+  const now = `${m[2]}/${m[3]} ${m[4]}:${m[5]}`;
   const filePath = downloadPath+"/"+BLOG_ID+"_"+`${m[1]}${m[2]}`+".csv";
   const message = await getMessageFromCSV(filePath, targetDataDate, now);
   fs.unlinkSync(filePath);
