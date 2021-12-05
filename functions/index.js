@@ -18,6 +18,8 @@ const LOGIN_PASS_SELECTOR = "input[name=password]";
 const LOGIN_SUBMIT_SELECTOR = "input[id=submit]";
 const CSV_DL_BUTTON = "a[id=reportCSVDownload]";
 const DISCORD_BOT_NAME = "PV教えるくん";
+// if you use windows, change here when local run, maybe... (i'm mac)
+const DOWNLOAD_PATH = "/tmp/download";
 
 const runtimeOpts = {
   timeoutSeconds: 300,
@@ -25,10 +27,12 @@ const runtimeOpts = {
 };
 
 /**
- * @param {int} msec - wait time
+ * @param {int} mSec - wait time
  */
-async function sleep(msec) {
-  setTimeout(() => { }, msec);
+async function sleep(mSec) {
+  return new Promise((resolve, reject) => {
+    setTimeout(resolve, mSec);
+  });
 }
 
 /**
@@ -82,52 +86,86 @@ UU: ${data[6]}
 }
 
 /**
- * main function
+ * scrape CSV
+ * @param {string} expectFileName - expect CSV file name
+ * @return {string} - CSV file name
  */
-async function scrapePVAndPostDiscord() {
+async function scrapeCSV(expectFileName) {
+  const maxRetryNumber = 3;
+
   const browser = await puppeteer.launch({
     headless: true,
     args: [
       "--disable-dev-shm-usage",
     ],
   });
-  // if you use windows, change here when local run, maybe... (i'm mac)
-  const downloadPath = "/tmp";
+  const page = await browser.newPage();
 
-  try {
-    const page = await browser.newPage();
+  let success = false;
+  for (let retryNumber = 1; retryNumber <= maxRetryNumber; retryNumber++) {
+    try {
+      // login page
+      await page.goto(LOGIN_URL, {waitUntil: "domcontentloaded"} );
+      await page.type(LOGIN_USER_SELECTOR, LOGIN_USER);
+      await page.type(LOGIN_PASS_SELECTOR, LOGIN_PASS);
+      await Promise.all([
+        page.waitForNavigation( {waitUntil: "networkidle0"} ),
+        page.click(LOGIN_SUBMIT_SELECTOR),
+      ]);
 
-    // login page
-    await page.goto(LOGIN_URL, {waitUntil: "domcontentloaded"} );
-    await page.type(LOGIN_USER_SELECTOR, LOGIN_USER);
-    await page.type(LOGIN_PASS_SELECTOR, LOGIN_PASS);
-    await Promise.all([
-      page.waitForNavigation( {waitUntil: "networkidle0"} ),
-      page.click(LOGIN_SUBMIT_SELECTOR),
-    ]);
+      // analytics page
+      await page.goto(TARGET_URL);
 
-    // analytics page
-    await page.goto(TARGET_URL);
+      // anallytics csv download
+      const client = await page.target().createCDPSession();
+      client.send("Page.setDownloadBehavior", {
+        behavior: "allow",
+        downloadPath: DOWNLOAD_PATH,
+      });
+      await page.click(CSV_DL_BUTTON);
+    } catch (e) {
+      console.error(e);
+      console.log("retry("+retryNumber+")");
+      continue;
+    }
 
-    // anallytics csv download
-    const client = await page.target().createCDPSession();
-    client.send("Page.setDownloadBehavior", {
-      behavior: "allow",
-      downloadPath: downloadPath,
-    });
-    await page.click(CSV_DL_BUTTON);
-    await sleep(2000);
-  } catch (e) {
-    console.error(e);
-  } finally {
-    browser.close();
+    // wait download, and get CSV file name
+    const fileName = await ((async () => {
+      let fileName;
+      while ( ! fileName || fileName.endsWith(".crdownload")) {
+        console.log("...waiting");
+        fileName = fs.readdirSync(DOWNLOAD_PATH)[0];
+        await sleep(1000);
+      }
+      return fileName;
+    })());
+    if (fileName == expectFileName) {
+      success = true;
+    }
+
+    // retry or finish
+    if (success) {
+      browser.close();
+      return fileName;
+    }
+    console.log("retry("+retryNumber+")");
   }
+  browser.close();
+  throw new Error("Max retry");
+}
 
-  // calc date
+/**
+ * main function
+ */
+async function scrapePVAndPostDiscord() {
   const m = await getDate();
+  const expectFileName = BLOG_ID+"_"+`${m[1]}${m[2]}`+".csv";
+
+  const fileName = await scrapeCSV(expectFileName);
+  console.log(fileName);
+  const filePath = DOWNLOAD_PATH+"/"+fileName;
   const targetDataDate = `${m[2]}/${m[3]}`;
   const now = `${m[2]}/${m[3]} ${m[4]}:${m[5]}`;
-  const filePath = downloadPath+"/"+BLOG_ID+"_"+`${m[1]}${m[2]}`+".csv";
   const message = await getMessageFromCSV(filePath, targetDataDate, now);
   fs.unlinkSync(filePath);
   await postDiscord(message);
@@ -136,7 +174,12 @@ async function scrapePVAndPostDiscord() {
 exports.scraping = functions.region("asia-northeast1")
     .runWith(runtimeOpts)
     .https.onRequest(async (req, res) => {
-      await scrapePVAndPostDiscord();
+      try {
+        await scrapePVAndPostDiscord();
+      } catch (e) {
+        console.log(e);
+        return res.status(500).json({status: "failed"});
+      }
       return res.status(200).json({status: "finished"});
     });
 
