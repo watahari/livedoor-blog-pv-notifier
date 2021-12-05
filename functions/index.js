@@ -192,7 +192,6 @@ exports.scheduledScraping = functions.region("asia-northeast1")
         await scrapePVAndPostDiscord();
       } catch (e) {
         console.log(e);
-        return res.status(500).json({status: "failed"});
       }
-      return res.status(200).json({status: "finished"});
+      console.log("finished");
     });
