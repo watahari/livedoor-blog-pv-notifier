@@ -188,6 +188,11 @@ exports.scheduledScraping = functions.region("asia-northeast1")
     .pubsub.schedule("0 13 * * *")
     .timeZone("Asia/Tokyo")
     .onRun( async (context) => {
-      await scrapePVAndPostDiscord();
-      console.log("finished");
+      try {
+        await scrapePVAndPostDiscord();
+      } catch (e) {
+        console.log(e);
+        return res.status(500).json({status: "failed"});
+      }
+      return res.status(200).json({status: "finished"});
     });
