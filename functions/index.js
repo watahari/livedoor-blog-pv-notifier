@@ -1,6 +1,6 @@
 const functions = require("firebase-functions");
 const puppeteer = require("puppeteer");
-const fs = require("fs");
+const fs = require("fs-extra");
 const axios = require("axios");
 
 const timezone = "Asia/Tokyo";
@@ -92,6 +92,8 @@ UU: ${data[6]}
  */
 async function scrapeCSV(expectFileName) {
   const maxRetryNumber = 3;
+
+  await fs.ensureDir(DOWNLOAD_PATH);
 
   const browser = await puppeteer.launch({
     headless: true,
